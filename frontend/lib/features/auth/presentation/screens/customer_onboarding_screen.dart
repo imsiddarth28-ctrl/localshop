@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/l10n/app_locale.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/validators.dart';
 import '../../../../core/widgets/elder_friendly_button.dart';
 import '../../../../core/widgets/elder_friendly_text_field.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -124,6 +125,8 @@ class _CustomerOnboardingScreenState extends ConsumerState<CustomerOnboardingScr
       }
     }
 
+    if (!mounted) return;
+
     if (_verifiedColony == null) {
       setState(() {
         _colonyError = 'Please enter a valid 6-character colony join code (e.g. GRN101)';
@@ -137,10 +140,13 @@ class _CustomerOnboardingScreenState extends ConsumerState<CustomerOnboardingScr
       return;
     }
 
+    final sanitizedName = AppValidators.sanitizeText(_nameController.text);
+    final sanitizedFlat = AppValidators.sanitizeText(_flatController.text);
+
     final success = await ref.read(authProvider.notifier).completeCustomerOnboarding(
-          name: _nameController.text.trim(),
+          name: sanitizedName,
           colonyId: _verifiedColony!.colonyId,
-          flatNumber: _flatController.text.trim(),
+          flatNumber: sanitizedFlat,
           avatarUrl: _avatarImageFile?.path,
         );
 

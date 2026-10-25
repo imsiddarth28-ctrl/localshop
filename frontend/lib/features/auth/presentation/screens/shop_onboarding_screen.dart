@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/l10n/app_locale.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/validators.dart';
 import '../../../../core/widgets/elder_friendly_button.dart';
 import '../../../../core/widgets/elder_friendly_text_field.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -125,13 +126,18 @@ class _ShopOnboardingScreenState extends ConsumerState<ShopOnboardingScreen> {
       return;
     }
 
+    final sanitizedShopName = AppValidators.sanitizeText(_shopNameController.text);
+    final sanitizedOwnerName = AppValidators.sanitizeText(_ownerNameController.text);
+    final sanitizedAddress = AppValidators.sanitizeText(_addressController.text);
+    final sanitizedHours = AppValidators.sanitizeText(_hoursController.text);
+
     final success = await ref.read(authProvider.notifier).completeShopOnboarding(
-          shopName: _shopNameController.text.trim(),
-          ownerName: _ownerNameController.text.trim(),
+          shopName: sanitizedShopName,
+          ownerName: sanitizedOwnerName,
           colonyId: _verifiedColony!.colonyId,
           category: _selectedCategory,
-          address: _addressController.text.trim(),
-          hours: _hoursController.text.trim(),
+          address: sanitizedAddress,
+          hours: sanitizedHours,
           slots: {
             'instant': _instantSlot,
             'morning': _morningSlot,

@@ -191,6 +191,10 @@ class AuthRepository {
     required String password,
     required AppRole role,
   }) async {
+    if (role == AppRole.admin) {
+      throw Exception('Security violation: Public admin accounts cannot be registered.');
+    }
+
     final syntheticEmail = AppValidators.generateSyntheticEmail(phone);
     final e164Phone = AppValidators.formatToE164(phone);
 
