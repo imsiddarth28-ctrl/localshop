@@ -5,10 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/l10n/app_locale.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_tokens.dart';
 import '../../../../core/utils/validators.dart';
-import '../../../../core/widgets/elder_friendly_button.dart';
-import '../../../../core/widgets/elder_friendly_text_field.dart';
+import '../../../../core/widgets/glass/glass.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../providers/auth_provider.dart';
 
@@ -66,7 +65,7 @@ class _CustomerOnboardingScreenState extends ConsumerState<CustomerOnboardingScr
             _colonyError = null;
           } else {
             _verifiedColony = null;
-            _colonyError = 'Invalid join code. Please get the 6-character code from your colony admin.';
+            _colonyError = 'Invalid join code. Please get 6-character code from colony admin.';
           }
         });
       }
@@ -101,12 +100,7 @@ class _CustomerOnboardingScreenState extends ConsumerState<CustomerOnboardingScr
 
   void _submit() async {
     if (!_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter your full name and flat number.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      GlassSnackbar.showError(context, 'Please enter your full name and flat number.');
       return;
     }
 
@@ -131,12 +125,7 @@ class _CustomerOnboardingScreenState extends ConsumerState<CustomerOnboardingScr
       setState(() {
         _colonyError = 'Please enter a valid 6-character colony join code (e.g. GRN101)';
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please verify your colony code (e.g. GRN101) before continuing.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      GlassSnackbar.showError(context, 'Please verify your colony code (e.g. GRN101) before continuing.');
       return;
     }
 
@@ -154,12 +143,7 @@ class _CustomerOnboardingScreenState extends ConsumerState<CustomerOnboardingScr
       context.go('/home');
     } else if (mounted) {
       final error = ref.read(authProvider).errorMessage ?? 'Failed to complete profile. Please try again.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      GlassSnackbar.showError(context, error);
     }
   }
 
@@ -167,16 +151,19 @@ class _CustomerOnboardingScreenState extends ConsumerState<CustomerOnboardingScr
   Widget build(BuildContext context) {
     final tr = context.tr;
     final authState = ref.watch(authProvider);
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(tr.customerOnboardingTitle),
+    return GlassScaffold(
+      extendBodyBehindAppBar: true,
+      appBar: GlassAppBar(
         automaticallyImplyLeading: false,
+        title: Text(
+          tr.customerOnboardingTitle,
+          style: AppTokens.headingSmall(isDark).copyWith(fontSize: 18),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: Icon(Icons.logout_rounded, color: isDark ? AppTokens.textPrimaryDark : AppTokens.textPrimaryLight),
             tooltip: tr.logout,
             onPressed: () async {
               await ref.read(authProvider.notifier).signOut();
@@ -187,182 +174,183 @@ class _CustomerOnboardingScreenState extends ConsumerState<CustomerOnboardingScr
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tr.customerOnboardingTitle,
-                  style: theme.textTheme.displayMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tr.customerOnboardingTitle,
+                    style: AppTokens.headingMedium(isDark),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  tr.customerOnboardingSubtitle,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  const SizedBox(height: 4),
+                  Text(
+                    tr.customerOnboardingSubtitle,
+                    style: AppTokens.bodyMedium(isDark),
                   ),
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
-                // Avatar Picker (Optional)
-                Center(
-                  child: Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: AppColors.primaryContainer,
-                        backgroundImage: _avatarImageFile != null ? FileImage(_avatarImageFile!) : null,
-                        child: _avatarImageFile == null
-                            ? const Icon(Icons.person, size: 54, color: AppColors.primary)
-                            : null,
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: InkWell(
-                          onTap: _pickAvatar,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: AppColors.secondary,
-                              shape: BoxShape.circle,
+                  // Avatar Picker Glass Box
+                  Center(
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 88,
+                          height: 88,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDark ? const Color(0x2934D399) : const Color(0x33059669),
+                            border: Border.all(
+                              color: isDark ? AppTokens.primaryDark : AppTokens.primaryLight,
+                              width: 1.5,
                             ),
-                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                          ),
+                          child: ClipOval(
+                            child: _avatarImageFile != null
+                                ? Image.file(_avatarImageFile!, fit: BoxFit.cover)
+                                : Icon(
+                                    Icons.person_rounded,
+                                    size: 48,
+                                    color: isDark ? AppTokens.primaryDark : AppTokens.primaryLight,
+                                  ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    '${tr.addPhoto} (${tr.optional})',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Full Name
-                ElderFriendlyTextField(
-                  controller: _nameController,
-                  label: tr.fullNameLabel,
-                  hint: tr.fullNameHint,
-                  prefixIcon: Icons.badge_outlined,
-                  textCapitalization: TextCapitalization.words,
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return tr.enterFullName;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Colony Join Code
-                ElderFriendlyTextField(
-                  controller: _joinCodeController,
-                  label: tr.colonyCodeLabel,
-                  hint: tr.colonyCodeHint,
-                  prefixIcon: Icons.apartment_rounded,
-                  textCapitalization: TextCapitalization.characters,
-                  onChanged: _onJoinCodeChanged,
-                  suffixIcon: _isValidatingCode
-                      ? const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : (_verifiedColony != null
-                          ? const Icon(Icons.check_circle, color: AppColors.success, size: 28)
-                          : null),
-                ),
-                const SizedBox(height: 6),
-
-                // Verified Colony Banner or Helper
-                if (_verifiedColony != null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.primaryLight),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.verified, color: AppColors.primary, size: 22),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Colony: ${_verifiedColony!.colonyName} (${_verifiedColony!.approvedShopsCount} shops available)',
-                            style: const TextStyle(
-                              color: AppColors.primaryDark,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: InkWell(
+                            onTap: _pickAvatar,
+                            child: Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppTokens.accentDark : AppTokens.accentLight,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 16),
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                ] else if (_colonyError != null) ...[
-                  Text(
-                    _colonyError!,
-                    style: const TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
-                ] else ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.info_outline, size: 16, color: AppColors.textMutedLight),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          '${tr.colonyCodeHelp} (Default demo: GRN101)',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                          ),
+                  const SizedBox(height: 20),
+
+                  // Onboarding Fields Card
+                  GlassCard(
+                    padding: const EdgeInsets.all(AppTokens.space24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Full Name
+                        GlassTextField(
+                          controller: _nameController,
+                          label: tr.fullNameLabel,
+                          hint: tr.fullNameHint,
+                          prefixIcon: Icons.badge_outlined,
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) return tr.enterFullName;
+                            return null;
+                          },
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 18),
+
+                        // Join Code
+                        GlassTextField(
+                          controller: _joinCodeController,
+                          label: tr.colonyCodeLabel,
+                          hint: tr.colonyCodeHint,
+                          prefixIcon: Icons.vpn_key_outlined,
+                          onChanged: _onJoinCodeChanged,
+                          suffixIcon: _isValidatingCode
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                )
+                              : (_verifiedColony != null
+                                  ? const Icon(Icons.check_circle_rounded, color: AppTokens.primaryDark)
+                                  : null),
+                          validator: (val) {
+                            if (val == null || val.trim().length != 6) {
+                              return tr.enterColonyCode;
+                            }
+                            return null;
+                          },
+                        ),
+
+                        // Verified Colony Banner
+                        if (_verifiedColony != null) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+                              color: (isDark ? AppTokens.primaryDark : AppTokens.primaryLight).withOpacity(0.15),
+                              border: Border.all(
+                                color: (isDark ? AppTokens.primaryDark : AppTokens.primaryLight).withOpacity(0.5),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.location_city_rounded, size: 18, color: isDark ? AppTokens.primaryDark : AppTokens.primaryLight),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Colony: ${_verifiedColony!.colonyName} (${_verifiedColony!.approvedShopsCount} shops available)',
+                                    style: AppTokens.bodySmall(isDark).copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark ? AppTokens.primaryDark : AppTokens.primaryLight,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ] else if (_colonyError != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            _colonyError!,
+                            style: AppTokens.bodySmall(isDark).copyWith(color: AppTokens.dangerDark, fontWeight: FontWeight.w600),
+                          ),
+                        ] else ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            '${tr.colonyCodeHelp} (Default demo: GRN101)',
+                            style: AppTokens.bodySmall(isDark),
+                          ),
+                        ],
+                        const SizedBox(height: 18),
+
+                        // Flat Number
+                        GlassTextField(
+                          controller: _flatController,
+                          label: tr.flatLabel,
+                          hint: tr.flatHint,
+                          prefixIcon: Icons.home_rounded,
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) return tr.enterFlatNumber;
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Submit Button
+                        GlassButton(
+                          text: tr.completeProfileBtn,
+                          isLoading: authState.isLoading,
+                          onPressed: _submit,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-                const SizedBox(height: 20),
-
-                // Block / Flat Number
-                ElderFriendlyTextField(
-                  controller: _flatController,
-                  label: tr.flatLabel,
-                  hint: tr.flatHint,
-                  prefixIcon: Icons.home_rounded,
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return tr.enterFlatNumber;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 32),
-
-                // Submit Button
-                ElderFriendlyButton(
-                  text: tr.completeProfileBtn,
-                  isLoading: authState.isLoading,
-                  onPressed: _submit,
-                ),
-                const SizedBox(height: 24),
-              ],
+              ),
             ),
           ),
         ),

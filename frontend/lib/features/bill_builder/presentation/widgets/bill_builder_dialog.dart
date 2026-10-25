@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:the_local_shop/core/theme/app_colors.dart';
-import 'package:the_local_shop/core/widgets/elder_friendly_button.dart';
+import 'package:the_local_shop/core/theme/app_tokens.dart';
+import 'package:the_local_shop/core/widgets/glass/glass.dart';
 import 'package:the_local_shop/features/orders/domain/models/order.dart';
 
 class BillBuilderDialog extends StatefulWidget {
   final CustomerOrder order;
-  final Function(List<OrderItem> items, double deliveryFee, double packingFee) onBillSubmitted;
+  final Function(List<OrderItem> items, double deliveryFee, double packingFee)
+      onBillSubmitted;
 
   const BillBuilderDialog({
     super.key,
@@ -49,7 +50,16 @@ class _BillBuilderDialogState extends State<BillBuilderDialog> {
     }
   }
 
-  double get _itemsSubtotal => _items.fold(0.0, (acc, item) => acc + item.total);
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _qtyController.dispose();
+    _priceController.dispose();
+    super.dispose();
+  }
+
+  double get _itemsSubtotal =>
+      _items.fold(0.0, (acc, item) => acc + item.total);
   double get _grandTotal => _itemsSubtotal + _deliveryFee + _packingFee;
 
   void _addFromCatalog(Map<String, dynamic> cat) {
@@ -85,120 +95,191 @@ class _BillBuilderDialogState extends State<BillBuilderDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        top: 20,
-        left: 20,
-        right: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + AppTokens.spacing20,
+        top: AppTokens.spacing16,
+        left: AppTokens.spacing20,
+        right: AppTokens.spacing20,
       ),
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Build Itemized Bill',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.secondary),
-                  ),
-                  Text(
-                    'For: ${widget.order.customerName} (${widget.order.customerAddress})',
-                    style: const TextStyle(fontSize: 14, color: Colors.black54),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Build Itemized Bill',
+                      style: AppTokens.headingMedium.copyWith(
+                        fontSize: 20,
+                        color: isDark
+                            ? AppTokens.textPrimaryDark
+                            : AppTokens.textPrimaryLight,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'For: ${widget.order.customerName} (${widget.order.customerAddress})',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTokens.bodySmall.copyWith(
+                        color: isDark
+                            ? AppTokens.textSecondaryDark
+                            : AppTokens.textSecondaryLight,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               IconButton(
-                icon: const Icon(Icons.close_rounded, size: 28),
+                icon: Icon(
+                  Icons.close_rounded,
+                  size: 24,
+                  color: isDark
+                      ? AppTokens.textSecondaryDark
+                      : AppTokens.textSecondaryLight,
+                ),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          const Divider(),
+          const SizedBox(height: AppTokens.spacing12),
 
-          // Frequent Items Chips
-          const Text('Tap to Add Frequent Items:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          const SizedBox(height: 8),
+          // Frequent Items Bar
+          Text(
+            'Tap to Add Frequent Items:',
+            style: AppTokens.bodySmall.copyWith(
+              fontWeight: FontWeight.w700,
+              color: isDark
+                  ? AppTokens.textPrimaryDark
+                  : AppTokens.textPrimaryLight,
+            ),
+          ),
+          const SizedBox(height: AppTokens.spacing8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: _frequentCatalog.map((cat) {
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: ActionChip(
-                    avatar: const Icon(Icons.add, size: 16, color: AppColors.secondary),
-                    label: Text('${cat['name']} (₹${(cat['price'] as double).toInt()})'),
-                    onPressed: () => _addFromCatalog(cat),
+                  child: InkWell(
+                    onTap: () => _addFromCatalog(cat),
+                    borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.06)
+                            : Colors.black.withOpacity(0.04),
+                        borderRadius:
+                            BorderRadius.circular(AppTokens.radiusChip),
+                        border: Border.all(
+                          color: isDark
+                              ? AppTokens.glassBorderDark
+                              : AppTokens.glassBorderLight,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.add_rounded,
+                            size: 14,
+                            color: AppTokens.primary(isDark),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${cat['name']} (₹${(cat['price'] as double).toInt()})',
+                            style: AppTokens.bodySmall.copyWith(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? AppTokens.textPrimaryDark
+                                  : AppTokens.textPrimaryLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 );
               }).toList(),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: AppTokens.spacing16),
 
-          // Custom item form
+          // Add Custom Item Row
           Row(
             children: [
               Expanded(
-                flex: 3,
-                child: TextField(
+                flex: 4,
+                child: GlassTextField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Item Name',
-                    hintText: 'e.g. Red Chilli',
-                    isDense: true,
-                  ),
+                  label: 'Item Name',
+                  hint: 'e.g. Red Chilli',
+                  prefixIcon: Icons.shopping_basket_outlined,
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 1,
-                child: TextField(
-                  controller: _qtyController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Qty',
-                    isDense: true,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppTokens.spacing8),
               Expanded(
                 flex: 2,
-                child: TextField(
-                  controller: _priceController,
+                child: GlassTextField(
+                  controller: _qtyController,
+                  label: 'Qty',
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Price ₹',
-                    isDense: true,
-                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              IconButton.filled(
-                icon: const Icon(Icons.add),
-                style: IconButton.styleFrom(backgroundColor: AppColors.secondary),
-                onPressed: _addCustomItem,
+              const SizedBox(width: AppTokens.spacing8),
+              Expanded(
+                flex: 3,
+                child: GlassTextField(
+                  controller: _priceController,
+                  label: 'Price ₹',
+                  keyboardType: TextInputType.number,
+                  prefixIcon: Icons.currency_rupee_rounded,
+                ),
+              ),
+              const SizedBox(width: AppTokens.spacing8),
+              SizedBox(
+                height: 52,
+                width: 52,
+                child: GlassButton(
+                  icon: Icons.add_rounded,
+                  variant: GlassButtonVariant.filled,
+                  height: 52,
+                  onPressed: _addCustomItem,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: AppTokens.spacing16),
 
           // Added items list
           Expanded(
             child: _items.isEmpty
-                ? const Center(
-                    child: Text('No items added yet. Tap items above or type custom item.'),
+                ? Center(
+                    child: Text(
+                      'No items added yet.\nTap quick items above or type custom items.',
+                      textAlign: TextAlign.center,
+                      style: AppTokens.bodySmall.copyWith(
+                        color: isDark
+                            ? AppTokens.textSecondaryDark
+                            : AppTokens.textSecondaryLight,
+                      ),
+                    ),
                   )
                 : ListView.builder(
                     itemCount: _items.length,
@@ -206,26 +287,52 @@ class _BillBuilderDialogState extends State<BillBuilderDialog> {
                       final item = _items[idx];
                       return Container(
                         margin: const EdgeInsets.only(bottom: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppTokens.spacing12,
+                          vertical: AppTokens.spacing8,
+                        ),
                         decoration: BoxDecoration(
-                          color: AppColors.cardLight,
-                          borderRadius: BorderRadius.circular(10),
+                          color: isDark
+                              ? Colors.white.withOpacity(0.04)
+                              : Colors.black.withOpacity(0.03),
+                          borderRadius:
+                              BorderRadius.circular(AppTokens.radiusButton),
+                          border: Border.all(
+                            color: isDark
+                                ? AppTokens.glassBorderDark.withOpacity(0.5)
+                                : AppTokens.glassBorderLight.withOpacity(0.5),
+                          ),
                         ),
                         child: Row(
                           children: [
                             Expanded(
                               child: Text(
                                 '${item.name} (${item.quantity.toInt()} × ₹${item.pricePerUnit.toInt()})',
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                                style: AppTokens.bodyMedium.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark
+                                      ? AppTokens.textPrimaryDark
+                                      : AppTokens.textPrimaryLight,
+                                ),
                               ),
                             ),
                             Text(
                               '₹${item.total.toInt()}',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              style: AppTokens.headingSmall.copyWith(
+                                fontSize: 15,
+                                color: isDark
+                                    ? AppTokens.textPrimaryDark
+                                    : AppTokens.textPrimaryLight,
+                              ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
-                              onPressed: () => setState(() => _items.removeAt(idx)),
+                              icon: const Icon(
+                                Icons.delete_outline_rounded,
+                                color: AppTokens.danger,
+                                size: 18,
+                              ),
+                              onPressed: () =>
+                                  setState(() => _items.removeAt(idx)),
                             ),
                           ],
                         ),
@@ -234,54 +341,110 @@ class _BillBuilderDialogState extends State<BillBuilderDialog> {
                   ),
           ),
 
-          // Total Summary
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.primaryContainer.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(12),
-            ),
+          // Total Summary Card
+          GlassCard(
+            useRealBlur: false,
+            padding: const EdgeInsets.all(AppTokens.spacing12),
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Items Subtotal:', style: TextStyle(fontSize: 15)),
-                    Text('₹${_itemsSubtotal.toInt()}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                    Text(
+                      'Items Subtotal:',
+                      style: AppTokens.bodySmall.copyWith(
+                        color: isDark
+                            ? AppTokens.textSecondaryDark
+                            : AppTokens.textSecondaryLight,
+                      ),
+                    ),
+                    Text(
+                      '₹${_itemsSubtotal.toInt()}',
+                      style: AppTokens.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: isDark
+                            ? AppTokens.textPrimaryDark
+                            : AppTokens.textPrimaryLight,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Delivery Fee (${widget.order.slot.name.toUpperCase()}):', style: const TextStyle(fontSize: 14)),
-                    Text('₹${_deliveryFee.toInt()}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    Text(
+                      'Delivery Fee (${widget.order.slot.name.toUpperCase()}):',
+                      style: AppTokens.bodySmall.copyWith(
+                        color: isDark
+                            ? AppTokens.textSecondaryDark
+                            : AppTokens.textSecondaryLight,
+                      ),
+                    ),
+                    Text(
+                      '₹${_deliveryFee.toInt()}',
+                      style: AppTokens.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: isDark
+                            ? AppTokens.textPrimaryDark
+                            : AppTokens.textPrimaryLight,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Eco Packing Fee:', style: TextStyle(fontSize: 14)),
-                    Text('₹${_packingFee.toInt()}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    Text(
+                      'Eco Packing Fee:',
+                      style: AppTokens.bodySmall.copyWith(
+                        color: isDark
+                            ? AppTokens.textSecondaryDark
+                            : AppTokens.textSecondaryLight,
+                      ),
+                    ),
+                    Text(
+                      '₹${_packingFee.toInt()}',
+                      style: AppTokens.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: isDark
+                            ? AppTokens.textPrimaryDark
+                            : AppTokens.textPrimaryLight,
+                      ),
+                    ),
                   ],
                 ),
-                const Divider(),
+                const Divider(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Grand Total:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                    Text('₹${_grandTotal.toInt()}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.primary)),
+                    Text(
+                      'Grand Total:',
+                      style: AppTokens.headingSmall.copyWith(
+                        fontSize: 16,
+                        color: AppTokens.primary(isDark),
+                      ),
+                    ),
+                    Text(
+                      '₹${_grandTotal.toInt()}',
+                      style: AppTokens.headingMedium.copyWith(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: AppTokens.primary(isDark),
+                      ),
+                    ),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: AppTokens.spacing14),
 
-          ElderFriendlyButton(
+          GlassButton(
             text: 'Send Bill to Customer (₹${_grandTotal.toInt()})',
             icon: Icons.send_rounded,
+            variant: GlassButtonVariant.filled,
             onPressed: _items.isEmpty
                 ? null
                 : () {

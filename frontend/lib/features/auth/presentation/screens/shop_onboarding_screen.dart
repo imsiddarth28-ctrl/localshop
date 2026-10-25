@@ -5,10 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/l10n/app_locale.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_tokens.dart';
 import '../../../../core/utils/validators.dart';
-import '../../../../core/widgets/elder_friendly_button.dart';
-import '../../../../core/widgets/elder_friendly_text_field.dart';
+import '../../../../core/widgets/glass/glass.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../providers/auth_provider.dart';
 
@@ -104,18 +103,13 @@ class _ShopOnboardingScreenState extends ConsumerState<ShopOnboardingScreen> {
         });
       }
     } catch (e) {
-      debugPrint('Error picking photo: $e');
+      debugPrint('Error picking shop photo: $e');
     }
   }
 
   void _submit() async {
     if (!_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in all required shop details.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      GlassSnackbar.showError(context, 'Please fill in all required shop details.');
       return;
     }
 
@@ -123,6 +117,7 @@ class _ShopOnboardingScreenState extends ConsumerState<ShopOnboardingScreen> {
       setState(() {
         _colonyError = 'Please enter a valid 6-character colony join code (e.g. GRN101)';
       });
+      GlassSnackbar.showError(context, 'Please verify your colony join code first.');
       return;
     }
 
@@ -150,12 +145,7 @@ class _ShopOnboardingScreenState extends ConsumerState<ShopOnboardingScreen> {
       context.go('/pending-approval');
     } else if (mounted) {
       final error = ref.read(authProvider).errorMessage ?? 'Failed to submit shop details. Please try again.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      GlassSnackbar.showError(context, error);
     }
   }
 
@@ -163,16 +153,19 @@ class _ShopOnboardingScreenState extends ConsumerState<ShopOnboardingScreen> {
   Widget build(BuildContext context) {
     final tr = context.tr;
     final authState = ref.watch(authProvider);
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(tr.shopOnboardingTitle),
+    return GlassScaffold(
+      extendBodyBehindAppBar: true,
+      appBar: GlassAppBar(
         automaticallyImplyLeading: false,
+        title: Text(
+          tr.shopOnboardingTitle,
+          style: AppTokens.headingSmall(isDark).copyWith(fontSize: 18),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: Icon(Icons.logout_rounded, color: isDark ? AppTokens.textPrimaryDark : AppTokens.textPrimaryLight),
             tooltip: tr.logout,
             onPressed: () async {
               await ref.read(authProvider.notifier).signOut();
@@ -183,258 +176,230 @@ class _ShopOnboardingScreenState extends ConsumerState<ShopOnboardingScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tr.shopOnboardingTitle,
-                  style: theme.textTheme.displayMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 540),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tr.shopOnboardingTitle,
+                    style: AppTokens.headingMedium(isDark),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  tr.shopOnboardingSubtitle,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  const SizedBox(height: 4),
+                  Text(
+                    tr.shopOnboardingSubtitle,
+                    style: AppTokens.bodyMedium(isDark),
                   ),
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
-                // Shop Photo Upload Container
-                GestureDetector(
-                  onTap: _pickShopPhoto,
-                  child: Container(
-                    width: double.infinity,
-                    height: 160,
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceDark : AppColors.cardLight,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.dividerLight, width: 1.5),
-                      image: _shopPhotoFile != null
-                          ? DecorationImage(
-                              image: FileImage(_shopPhotoFile!),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                    ),
-                    child: _shopPhotoFile == null
-                        ? Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.add_a_photo_rounded, size: 44, color: AppColors.secondary),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Tap to add Storefront Photo (${tr.optional})',
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                              ),
-                            ],
-                          )
-                        : Align(
-                            alignment: Alignment.topRight,
-                            child: Container(
-                              margin: const EdgeInsets.all(8),
-                              padding: const EdgeInsets.all(6),
-                              decoration: const BoxDecoration(
-                                color: Colors.black54,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.edit, color: Colors.white, size: 20),
+                  // Storefront Photo Glass Box
+                  GestureDetector(
+                    onTap: _pickShopPhoto,
+                    child: GlassCard(
+                      padding: EdgeInsets.zero,
+                      height: 140,
+                      child: _shopPhotoFile != null
+                          ? Image.file(_shopPhotoFile!, fit: BoxFit.cover, width: double.infinity)
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_a_photo_rounded, size: 38, color: isDark ? AppTokens.accentDark : AppTokens.accentLight),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Upload Storefront Photo (Optional)',
+                                  style: AppTokens.bodySmall(isDark).copyWith(fontWeight: FontWeight.w600),
+                                ),
+                              ],
                             ),
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Shop Name
-                ElderFriendlyTextField(
-                  controller: _shopNameController,
-                  label: tr.shopNameLabel,
-                  hint: tr.shopNameHint,
-                  prefixIcon: Icons.store_rounded,
-                  textCapitalization: TextCapitalization.words,
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) return tr.enterShopName;
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Owner Name
-                ElderFriendlyTextField(
-                  controller: _ownerNameController,
-                  label: 'Owner Full Name',
-                  hint: 'e.g. Balaji Sharma',
-                  prefixIcon: Icons.person_outline_rounded,
-                  textCapitalization: TextCapitalization.words,
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) return tr.enterFullName;
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Colony Join Code
-                ElderFriendlyTextField(
-                  controller: _joinCodeController,
-                  label: tr.colonyCodeLabel,
-                  hint: tr.colonyCodeHint,
-                  prefixIcon: Icons.apartment_rounded,
-                  textCapitalization: TextCapitalization.characters,
-                  onChanged: _onJoinCodeChanged,
-                  suffixIcon: _isValidatingCode
-                      ? const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : (_verifiedColony != null
-                          ? const Icon(Icons.check_circle, color: AppColors.success, size: 28)
-                          : null),
-                ),
-                const SizedBox(height: 6),
-
-                if (_verifiedColony != null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.primaryLight),
                     ),
-                    child: Row(
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Shop Details Glass Card
+                  GlassCard(
+                    padding: const EdgeInsets.all(AppTokens.space24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.verified, color: AppColors.primary, size: 22),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Colony: ${_verifiedColony!.colonyName} (${_verifiedColony!.approvedShopsCount}/${_verifiedColony!.maxShops} shops)',
-                            style: const TextStyle(
-                              color: AppColors.primaryDark,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
+                        GlassTextField(
+                          controller: _shopNameController,
+                          label: tr.shopNameLabel,
+                          hint: tr.shopNameHint,
+                          prefixIcon: Icons.store_rounded,
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) return tr.enterShopName;
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 18),
+
+                        GlassTextField(
+                          controller: _ownerNameController,
+                          label: tr.fullNameLabel,
+                          hint: tr.fullNameHint,
+                          prefixIcon: Icons.person_outline_rounded,
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) return tr.enterFullName;
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 18),
+
+                        // Join Code with live check
+                        GlassTextField(
+                          controller: _joinCodeController,
+                          label: tr.colonyCodeLabel,
+                          hint: tr.colonyCodeHint,
+                          prefixIcon: Icons.vpn_key_outlined,
+                          onChanged: _onJoinCodeChanged,
+                          suffixIcon: _isValidatingCode
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                )
+                              : (_verifiedColony != null
+                                  ? const Icon(Icons.check_circle_rounded, color: AppTokens.primaryDark)
+                                  : null),
+                          validator: (val) {
+                            if (val == null || val.trim().length != 6) return tr.enterColonyCode;
+                            return null;
+                          },
+                        ),
+
+                        if (_verifiedColony != null) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+                              color: (isDark ? AppTokens.primaryDark : AppTokens.primaryLight).withOpacity(0.15),
+                              border: Border.all(
+                                color: (isDark ? AppTokens.primaryDark : AppTokens.primaryLight).withOpacity(0.5),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.verified_rounded, size: 18, color: isDark ? AppTokens.primaryDark : AppTokens.primaryLight),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Verified: ${_verifiedColony!.colonyName} (${_verifiedColony!.approvedShopsCount}/${_verifiedColony!.maxShops} registered)',
+                                    style: AppTokens.bodySmall(isDark).copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark ? AppTokens.primaryDark : AppTokens.primaryLight,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+                        ] else if (_colonyError != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            _colonyError!,
+                            style: AppTokens.bodySmall(isDark).copyWith(color: AppTokens.dangerDark, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                        const SizedBox(height: 18),
+
+                        // Category Dropdown
+                        Text('Shop Category', style: AppTokens.label(isDark).copyWith(fontSize: 13)),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(AppTokens.radiusField),
+                            color: isDark ? AppTokens.glassFillDark : AppTokens.glassFillLight,
+                            border: Border.all(
+                              color: isDark ? AppTokens.glassBorderDark : AppTokens.glassBorderLight,
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedCategory,
+                              isExpanded: true,
+                              dropdownColor: isDark ? AppTokens.bgDarkEnd : Colors.white,
+                              style: AppTokens.bodyLarge(isDark).copyWith(fontSize: 15),
+                              items: AppConstants.shopCategories.map((cat) {
+                                return DropdownMenuItem(value: cat, child: Text(cat));
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) setState(() => _selectedCategory = val);
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+
+                        GlassTextField(
+                          controller: _addressController,
+                          label: tr.addressLabel,
+                          hint: tr.addressHint,
+                          prefixIcon: Icons.place_outlined,
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) return tr.enterShopAddress;
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 18),
+
+                        GlassTextField(
+                          controller: _hoursController,
+                          label: tr.hoursLabel,
+                          hint: 'e.g. 7:00 AM - 9:30 PM',
+                          prefixIcon: Icons.access_time_rounded,
+                        ),
+                        const SizedBox(height: 22),
+
+                        // Delivery Slots Config
+                        Text(tr.deliverySlotsOffered, style: AppTokens.label(isDark).copyWith(fontSize: 14)),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            GlassChip(
+                              label: 'Instant Delivery (+₹10)',
+                              subtitle: 'Within 30 mins',
+                              icon: Icons.bolt_rounded,
+                              isSelected: _instantSlot,
+                              onTap: () => setState(() => _instantSlot = !_instantSlot),
+                            ),
+                            GlassChip(
+                              label: 'Morning Slot (+₹5)',
+                              subtitle: '7:00 AM - 9:00 AM',
+                              icon: Icons.wb_sunny_outlined,
+                              isSelected: _morningSlot,
+                              onTap: () => setState(() => _morningSlot = !_morningSlot),
+                            ),
+                            GlassChip(
+                              label: 'Evening Slot (+₹5)',
+                              subtitle: '6:00 PM - 8:00 PM',
+                              icon: Icons.nights_stay_outlined,
+                              isSelected: _eveningSlot,
+                              onTap: () => setState(() => _eveningSlot = !_eveningSlot),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 28),
+
+                        GlassButton(
+                          text: tr.submitForApprovalBtn,
+                          isLoading: authState.isLoading,
+                          onPressed: _submit,
                         ),
                       ],
                     ),
                   ),
-                ] else if (_colonyError != null) ...[
-                  Text(
-                    _colonyError!,
-                    style: const TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
-                ] else ...[
-                  Text(
-                    '${tr.colonyCodeHelp} (Default demo: GRN101)',
-                    style: TextStyle(fontSize: 13, color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight),
-                  ),
                 ],
-                const SizedBox(height: 20),
-
-                // Category Dropdown
-                Text(
-                  tr.categoryLabel,
-                  style: theme.textTheme.titleMedium?.copyWith(fontSize: 16, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.surfaceDark : Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.dividerLight, width: 1.5),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedCategory,
-                      isExpanded: true,
-                      icon: const Icon(Icons.arrow_drop_down, size: 30),
-                      style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-                      items: AppConstants.shopCategories.map((cat) {
-                        return DropdownMenuItem<String>(
-                          value: cat,
-                          child: Text(cat),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) setState(() => _selectedCategory = val);
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Shop Address
-                ElderFriendlyTextField(
-                  controller: _addressController,
-                  label: tr.addressLabel,
-                  hint: tr.addressHint,
-                  prefixIcon: Icons.location_on_outlined,
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) return tr.enterShopAddress;
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Hours
-                ElderFriendlyTextField(
-                  controller: _hoursController,
-                  label: tr.hoursLabel,
-                  hint: tr.hoursHint,
-                  prefixIcon: Icons.access_time_rounded,
-                ),
-                const SizedBox(height: 24),
-
-                // Delivery Slots Configuration
-                Text(
-                  tr.deliverySlotsOffered,
-                  style: theme.textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                CheckboxListTile(
-                  title: Text(tr.instantSlotDesc, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                  subtitle: const Text('Direct delivery within 30-45 minutes'),
-                  value: _instantSlot,
-                  activeColor: AppColors.secondary,
-                  onChanged: (val) => setState(() => _instantSlot = val ?? true),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                CheckboxListTile(
-                  title: Text(tr.morningSlotDesc, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                  subtitle: const Text('Batch delivery route at 7:00 AM (Order before 10 PM)'),
-                  value: _morningSlot,
-                  activeColor: AppColors.primary,
-                  onChanged: (val) => setState(() => _morningSlot = val ?? true),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                CheckboxListTile(
-                  title: Text(tr.eveningSlotDesc, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                  subtitle: const Text('Batch delivery route at 6:00 PM (Order before 4 PM)'),
-                  value: _eveningSlot,
-                  activeColor: AppColors.primary,
-                  onChanged: (val) => setState(() => _eveningSlot = val ?? true),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                const SizedBox(height: 32),
-
-                // Submit Button
-                ElderFriendlyButton(
-                  text: tr.submitForApprovalBtn,
-                  isLoading: authState.isLoading,
-                  isSecondary: true,
-                  onPressed: _submit,
-                ),
-                const SizedBox(height: 30),
-              ],
+              ),
             ),
           ),
         ),

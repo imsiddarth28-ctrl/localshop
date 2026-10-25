@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:the_local_shop/core/theme/app_colors.dart';
-import 'package:the_local_shop/core/widgets/elder_friendly_button.dart';
+import 'package:the_local_shop/core/theme/app_tokens.dart';
+import 'package:the_local_shop/core/widgets/glass/glass.dart';
 
 class AdminDashboardView extends StatefulWidget {
   const AdminDashboardView({super.key});
@@ -10,125 +10,274 @@ class AdminDashboardView extends StatefulWidget {
 }
 
 class _AdminDashboardViewState extends State<AdminDashboardView> {
-  bool _pendingShopApproved = true;
-  bool _resetRequestHandled = true;
+  bool _pendingShopApproved = false;
+  bool _resetRequestHandled = false;
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Admin Summary KPIs
+        // Admin Summary KPIs (Glass Cards with Real/Fake Blur)
         Row(
           children: [
             Expanded(
-              child: _buildKpiCard('Colonies', '1 Active', Icons.location_city, AppColors.primary),
+              child: _buildKpiCard(
+                'Active Colonies',
+                '1 Active',
+                Icons.location_city_rounded,
+                AppTokens.primary(isDark),
+                isDark,
+              ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: AppTokens.spacing8),
             Expanded(
-              child: _buildKpiCard('Colony Shops', '3 / 3 Cap', Icons.store, AppColors.secondary),
+              child: _buildKpiCard(
+                'Colony Shops',
+                '3 / 3 Cap',
+                Icons.storefront_rounded,
+                AppTokens.accentWarm,
+                isDark,
+              ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: AppTokens.spacing8),
             Expanded(
-              child: _buildKpiCard('Total GMV', '₹18,420', Icons.currency_rupee, AppColors.success),
+              child: _buildKpiCard(
+                'Total GMV',
+                '₹18,420',
+                Icons.currency_rupee_rounded,
+                AppTokens.info,
+                isDark,
+              ),
             ),
           ],
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: AppTokens.spacing16),
 
         // Colony Config Card
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade300),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 3)),
-            ],
-          ),
+        GlassCard(
+          useRealBlur: true,
+          padding: const EdgeInsets.all(AppTokens.spacing16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Colony: Greenwood Heights', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryContainer,
-                      borderRadius: BorderRadius.circular(8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Greenwood Heights',
+                          style: AppTokens.headingSmall.copyWith(
+                            fontSize: 17,
+                            color: isDark
+                                ? AppTokens.textPrimaryDark
+                                : AppTokens.textPrimaryLight,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Colony Hub • 142 Residents Enrolled',
+                          style: AppTokens.bodySmall.copyWith(
+                            color: isDark
+                                ? AppTokens.textSecondaryDark
+                                : AppTokens.textSecondaryLight,
+                          ),
+                        ),
+                      ],
                     ),
-                    child: const Text('JOIN CODE: GRN101', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary)),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTokens.primary(isDark).withOpacity(0.16),
+                      borderRadius:
+                          BorderRadius.circular(AppTokens.radiusChip),
+                      border: Border.all(
+                        color: AppTokens.primary(isDark).withOpacity(0.4),
+                      ),
+                    ),
+                    child: Text(
+                      'JOIN: GRN101',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                        letterSpacing: 0.5,
+                        color: AppTokens.primary(isDark),
+                      ),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
-              const Text('Residents: 142 enrolled • Shop Cap: Max 3 (Enforced via Postgres RLS & Trigger)', style: TextStyle(fontSize: 13, color: Colors.black54)),
+              const SizedBox(height: AppTokens.spacing12),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.04)
+                      : Colors.black.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.shield_outlined,
+                      size: 14,
+                      color: AppTokens.accentWarm,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Shop Cap: Max 3 enforced via Postgres RLS & DB Triggers',
+                        style: AppTokens.bodySmall.copyWith(
+                          fontSize: 11,
+                          color: isDark
+                              ? AppTokens.textSecondaryDark
+                              : AppTokens.textSecondaryLight,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: AppTokens.spacing20),
 
-        // Pending Shop Approval Queue
-        const Text('Pending Shop Registrations (Queue)', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 10),
-        if (!_pendingShopApproved)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.secondary.withOpacity(0.4)),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 3)),
-              ],
+        // Section Title: Pending Shop Registrations
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Pending Shop Registrations',
+              style: AppTokens.headingSmall.copyWith(
+                fontSize: 16,
+                color: isDark
+                    ? AppTokens.textPrimaryDark
+                    : AppTokens.textPrimaryLight,
+              ),
             ),
+            if (!_pendingShopApproved)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTokens.accentWarm.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  '1 PENDING',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: AppTokens.accentWarm,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: AppTokens.spacing10),
+
+        if (!_pendingShopApproved)
+          GlassCard(
+            useRealBlur: false,
+            padding: const EdgeInsets.all(AppTokens.spacing16),
+            borderColor: AppTokens.accentWarm.withOpacity(0.4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Vijaya Bakery & Sweets', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(
+                      'Vijaya Bakery & Sweets',
+                      style: AppTokens.headingSmall.copyWith(
+                        fontSize: 16,
+                        color: isDark
+                            ? AppTokens.textPrimaryDark
+                            : AppTokens.textPrimaryLight,
+                      ),
+                    ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(6)),
-                      child: const Text('PENDING APPROVAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.brown)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTokens.accentWarm.withOpacity(0.16),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'AWAITING APPROVAL',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: AppTokens.accentWarm,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                const Text('Owner: Vijaya Lakshmi • +91 95555 55555\nCategory: Bakery & Confectionery • Hours: 8 AM - 9 PM', style: TextStyle(fontSize: 13, height: 1.4)),
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
+                Text(
+                  'Owner: Vijaya Lakshmi • +91 95555 55555\nCategory: Bakery & Confectionery • Hours: 8 AM - 9 PM',
+                  style: AppTokens.bodySmall.copyWith(
+                    height: 1.4,
+                    color: isDark
+                        ? AppTokens.textSecondaryDark
+                        : AppTokens.textSecondaryLight,
+                  ),
+                ),
+                const SizedBox(height: AppTokens.spacing12),
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton(
+                      child: GlassButton(
+                        text: 'Reject',
+                        icon: Icons.close_rounded,
+                        variant: GlassButtonVariant.outline,
+                        height: 40,
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Shop registration rejected')));
-                          setState(() => _pendingShopApproved = true);
-                        },
-                        child: const Text('Reject', style: TextStyle(color: AppColors.error)),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Shop Approved! (Note: Colony cap verified)'),
-                              backgroundColor: AppColors.success,
-                            ),
+                          GlassSnackbar.show(
+                            context,
+                            message: 'Shop registration rejected',
+                            variant: GlassSnackbarVariant.info,
                           );
                           setState(() => _pendingShopApproved = true);
                         },
-                        child: const Text('Approve Shop', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    const SizedBox(width: AppTokens.spacing10),
+                    Expanded(
+                      child: GlassButton(
+                        text: 'Approve Shop',
+                        icon: Icons.check_circle_outline_rounded,
+                        variant: GlassButtonVariant.filled,
+                        height: 40,
+                        onPressed: () {
+                          GlassSnackbar.show(
+                            context,
+                            message:
+                                'Shop approved! Colony cap verified (3/3).',
+                            variant: GlassSnackbarVariant.success,
+                          );
+                          setState(() => _pendingShopApproved = true);
+                        },
                       ),
                     ),
                   ],
@@ -137,52 +286,95 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
             ),
           )
         else
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.green.shade50,
-              borderRadius: BorderRadius.circular(12),
+          GlassCard(
+            useRealBlur: false,
+            padding: const EdgeInsets.symmetric(
+              vertical: AppTokens.spacing20,
+              horizontal: AppTokens.spacing16,
             ),
-            child: const Center(
-              child: Text('All shop applications reviewed. Queue is clean! ✨', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.success)),
+            child: Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.check_circle_outline_rounded,
+                    color: AppTokens.primary(isDark),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'All shop applications reviewed. Queue is clean! ✨',
+                    style: AppTokens.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppTokens.primary(isDark),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: AppTokens.spacing20),
 
         // Password Reset Request Queue
-        const Text('Password Reset Requests (Admin Moderation)', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 10),
+        Text(
+          'Password Reset Requests (Moderation)',
+          style: AppTokens.headingSmall.copyWith(
+            fontSize: 16,
+            color: isDark
+                ? AppTokens.textPrimaryDark
+                : AppTokens.textPrimaryLight,
+          ),
+        ),
+        const SizedBox(height: AppTokens.spacing10),
+
         if (!_resetRequestHandled)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
+          GlassCard(
+            useRealBlur: false,
+            padding: const EdgeInsets.all(AppTokens.spacing16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.lock_reset, color: AppColors.secondary),
-                    SizedBox(width: 8),
-                    Text('Sita Devi (+91 94444 44441)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    Icon(
+                      Icons.lock_reset_rounded,
+                      color: AppTokens.accentWarm,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Sita Devi (+91 94444 44441)',
+                      style: AppTokens.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: isDark
+                            ? AppTokens.textPrimaryDark
+                            : AppTokens.textPrimaryLight,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Text('Requested: 15 mins ago • Reason: Forgotten password', style: TextStyle(fontSize: 13, color: Colors.black54)),
-                const SizedBox(height: 10),
-                ElderFriendlyButton(
+                Text(
+                  'Requested: 15 mins ago • Reason: Forgotten password',
+                  style: AppTokens.bodySmall.copyWith(
+                    color: isDark
+                        ? AppTokens.textSecondaryDark
+                        : AppTokens.textSecondaryLight,
+                  ),
+                ),
+                const SizedBox(height: AppTokens.spacing12),
+                GlassButton(
                   text: 'Generate Temp Password (Temp@123)',
                   icon: Icons.key_rounded,
+                  variant: GlassButtonVariant.filled,
+                  height: 42,
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Temporary password generated! User must reset password on next login.'),
-                        backgroundColor: AppColors.primary,
-                      ),
+                    GlassSnackbar.show(
+                      context,
+                      message:
+                          'Temporary password generated! User must reset on next login.',
+                      variant: GlassSnackbarVariant.success,
                     );
                     setState(() => _resetRequestHandled = true);
                   },
@@ -191,33 +383,67 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
             ),
           )
         else
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
-            child: const Center(
-              child: Text('No active password reset requests', style: TextStyle(color: Colors.black54)),
+          GlassCard(
+            useRealBlur: false,
+            padding: const EdgeInsets.symmetric(
+              vertical: AppTokens.spacing20,
+              horizontal: AppTokens.spacing16,
+            ),
+            child: Center(
+              child: Text(
+                'No active password reset requests',
+                style: AppTokens.bodySmall.copyWith(
+                  color: isDark
+                      ? AppTokens.textSecondaryDark
+                      : AppTokens.textSecondaryLight,
+                ),
+              ),
             ),
           ),
       ],
     );
   }
 
-  Widget _buildKpiCard(String title, String val, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.2)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6, offset: const Offset(0, 2))],
+  Widget _buildKpiCard(
+    String title,
+    String val,
+    IconData icon,
+    Color color,
+    bool isDark,
+  ) {
+    return GlassCard(
+      useRealBlur: false,
+      padding: const EdgeInsets.symmetric(
+        vertical: AppTokens.spacing14,
+        horizontal: AppTokens.spacing8,
       ),
+      borderColor: color.withOpacity(0.25),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 24),
+          Icon(icon, color: color, size: 22),
           const SizedBox(height: 6),
-          Text(val, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+          Text(
+            val,
+            style: AppTokens.headingSmall.copyWith(
+              fontSize: 16,
+              color: isDark
+                  ? AppTokens.textPrimaryDark
+                  : AppTokens.textPrimaryLight,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(title, style: const TextStyle(fontSize: 11, color: Colors.black54, fontWeight: FontWeight.w600)),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTokens.bodySmall.copyWith(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: isDark
+                  ? AppTokens.textSecondaryDark
+                  : AppTokens.textSecondaryLight,
+            ),
+          ),
         ],
       ),
     );

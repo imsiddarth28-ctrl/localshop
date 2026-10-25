@@ -7,6 +7,7 @@ import 'core/router/app_router.dart';
 import 'core/services/notification_service.dart';
 import 'core/supabase/supabase_config.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +32,7 @@ class TheLocalShopApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     final locale = ref.watch(localeProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
       title: AppConstants.appName,
@@ -38,7 +40,7 @@ class TheLocalShopApp extends ConsumerWidget {
       routerConfig: router,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: themeMode,
       locale: locale,
       supportedLocales: const [
         Locale('en', ''),

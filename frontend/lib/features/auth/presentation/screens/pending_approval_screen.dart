@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/l10n/app_locale.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/elder_friendly_button.dart';
+import '../../../../core/theme/app_tokens.dart';
+import '../../../../core/widgets/glass/glass.dart';
+import '../../data/repositories/auth_repository.dart';
 import '../providers/auth_provider.dart';
 
 class PendingApprovalScreen extends ConsumerStatefulWidget {
@@ -34,12 +35,7 @@ class _PendingApprovalScreenState extends ConsumerState<PendingApprovalScreen> {
     await Future.delayed(const Duration(milliseconds: 600));
     if (mounted) {
       setState(() => _isChecking = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Status checked: Still pending colony admin review.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      GlassSnackbar.showInfo(context, 'Status checked: Still pending colony admin review.');
     }
   }
 
@@ -47,16 +43,16 @@ class _PendingApprovalScreenState extends ConsumerState<PendingApprovalScreen> {
   Widget build(BuildContext context) {
     final tr = context.tr;
     final user = ref.watch(authProvider).user;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(tr.appTitle),
+    return GlassScaffold(
+      extendBodyBehindAppBar: true,
+      appBar: GlassAppBar(
         automaticallyImplyLeading: false,
+        title: Text(tr.appTitle, style: AppTokens.headingSmall(isDark).copyWith(fontSize: 18)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: Icon(Icons.logout_rounded, color: isDark ? AppTokens.textPrimaryDark : AppTokens.textPrimaryLight),
             tooltip: tr.logout,
             onPressed: () async {
               await ref.read(authProvider.notifier).signOut();
@@ -66,87 +62,80 @@ class _PendingApprovalScreenState extends ConsumerState<PendingApprovalScreen> {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: AppColors.secondaryContainer,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.secondaryLight, width: 2),
-                ),
-                child: const Icon(
-                  Icons.hourglass_top_rounded,
-                  size: 54,
-                  color: AppColors.secondary,
-                ),
-              ),
-              const SizedBox(height: 28),
-              Text(
-                tr.pendingApprovalTitle,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.displayMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 24,
-                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                tr.pendingApprovalDesc,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryContainer.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  tr.pendingApprovalHint,
-                  style: const TextStyle(
-                    color: AppColors.primaryDark,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 48),
-
-              // Check Status Button
-              ElderFriendlyButton(
-                text: tr.checkStatusBtn,
-                isLoading: _isChecking,
-                icon: Icons.refresh_rounded,
-                onPressed: _checkStatus,
-              ),
-              const SizedBox(height: 16),
-
-              // Simulation trigger for testing/demo
-              TextButton(
-                onPressed: () {
-                  if (user != null) {
-                    final approved = user.copyWith(shopStatus: 'approved');
-                    ref.read(authProvider.notifier).setDemoUser(approved);
-                    context.go('/home');
-                  }
-                },
-                child: const Text(
-                  '⚡ Demo Shortcut: Simulate Admin Approval',
-                  style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: GlassCard(
+                padding: const EdgeInsets.all(AppTokens.space32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: (isDark ? AppTokens.accentDark : AppTokens.accentLight).withOpacity(0.18),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: (isDark ? AppTokens.accentDark : AppTokens.accentLight).withOpacity(0.5),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.hourglass_top_rounded,
+                        size: 42,
+                        color: isDark ? AppTokens.accentDark : AppTokens.accentLight,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      tr.pendingApprovalTitle,
+                      textAlign: TextAlign.center,
+                      style: AppTokens.headingMedium(isDark).copyWith(fontSize: 22),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      tr.pendingApprovalDesc,
+                      textAlign: TextAlign.center,
+                      style: AppTokens.bodyMedium(isDark),
+                    ),
+                    if (user?.shopName != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                          color: isDark ? const Color(0x1AFFFFFF) : const Color(0x330F172A),
+                        ),
+                        child: Text(
+                          'Store: ${user!.shopName}',
+                          style: AppTokens.bodySmall(isDark).copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 28),
+                    GlassButton(
+                      text: tr.checkStatusBtn,
+                      isLoading: _isChecking,
+                      icon: Icons.refresh_rounded,
+                      onPressed: _checkStatus,
+                    ),
+                    const SizedBox(height: 14),
+                    GlassButton(
+                      text: tr.logout,
+                      isSecondary: true,
+                      icon: Icons.logout_rounded,
+                      onPressed: () async {
+                        await ref.read(authProvider.notifier).signOut();
+                        if (context.mounted) context.go('/login');
+                      },
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),

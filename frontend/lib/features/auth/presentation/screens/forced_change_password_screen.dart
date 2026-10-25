@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/l10n/app_locale.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/validators.dart';
-import '../../../../core/widgets/elder_friendly_button.dart';
-import '../../../../core/widgets/elder_friendly_text_field.dart';
+import '../../../../core/theme/app_tokens.dart';
+import '../../../../core/widgets/glass/glass.dart';
 import '../providers/auth_provider.dart';
 
 class ForcedChangePasswordScreen extends ConsumerStatefulWidget {
@@ -36,13 +34,11 @@ class _ForcedChangePasswordScreenState extends ConsumerState<ForcedChangePasswor
         );
 
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password updated successfully! Welcome to The Local Shop.'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      GlassSnackbar.showSuccess(context, 'Password updated successfully! Welcome to The Local Shop.');
       context.go('/home');
+    } else if (mounted) {
+      final err = ref.read(authProvider).errorMessage ?? 'Failed to update password. Please try again.';
+      GlassSnackbar.showError(context, err);
     }
   }
 
@@ -50,108 +46,104 @@ class _ForcedChangePasswordScreenState extends ConsumerState<ForcedChangePasswor
   Widget build(BuildContext context) {
     final tr = context.tr;
     final authState = ref.watch(authProvider);
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(tr.changePasswordTitle),
+    return GlassScaffold(
+      extendBodyBehindAppBar: true,
+      appBar: GlassAppBar(
         automaticallyImplyLeading: false,
+        title: Text(tr.changePasswordTitle, style: AppTokens.headingSmall(isDark).copyWith(fontSize: 18)),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.secondaryContainer.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.secondaryLight),
-                  ),
-                  child: Row(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: GlassCard(
+                padding: const EdgeInsets.all(AppTokens.space32),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.security, color: AppColors.secondary, size: 32),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          tr.changePasswordSubtitle,
-                          style: TextStyle(
-                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
+                      Center(
+                        child: Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: (isDark ? AppTokens.accentDark : AppTokens.accentLight).withOpacity(0.18),
+                            border: Border.all(
+                              color: (isDark ? AppTokens.accentDark : AppTokens.accentLight).withOpacity(0.5),
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.security_rounded,
+                            size: 38,
+                            color: isDark ? AppTokens.accentDark : AppTokens.accentLight,
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 18),
+                      Center(
+                        child: Text(
+                          tr.changePasswordTitle,
+                          textAlign: TextAlign.center,
+                          style: AppTokens.headingMedium(isDark).copyWith(fontSize: 22),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Center(
+                        child: Text(
+                          tr.changePasswordSubtitle,
+                          textAlign: TextAlign.center,
+                          style: AppTokens.bodyMedium(isDark),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      GlassTextField(
+                        controller: _newPasswordController,
+                        label: tr.newPasswordLabel,
+                        hint: tr.newPasswordHint,
+                        prefixIcon: Icons.lock_outline_rounded,
+                        obscureText: _obscurePassword,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                            size: 20,
+                            color: isDark ? AppTokens.textSecondaryDark : AppTokens.textSecondaryLight,
+                          ),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        ),
+                        validator: (val) {
+                          if (val == null || val.length < 6) return tr.enterValidPassword;
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      GlassTextField(
+                        controller: _confirmPasswordController,
+                        label: tr.confirmPasswordLabel,
+                        hint: tr.confirmPasswordHint,
+                        prefixIcon: Icons.lock_reset_rounded,
+                        obscureText: _obscurePassword,
+                        validator: (val) {
+                          if (val != _newPasswordController.text) return tr.passwordsDoNotMatch;
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 28),
+                      GlassButton(
+                        text: tr.updatePasswordBtn,
+                        isLoading: authState.isLoading,
+                        onPressed: _submit,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 28),
-
-                // Error Banner
-                if (authState.errorMessage != null) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.error.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      authState.errorMessage!,
-                      style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-
-                // New Password
-                ElderFriendlyTextField(
-                  controller: _newPasswordController,
-                  label: tr.newPasswordLabel,
-                  hint: tr.newPasswordHint,
-                  prefixIcon: Icons.lock_outline_rounded,
-                  obscureText: _obscurePassword,
-                  suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                  ),
-                  validator: (val) {
-                    if (!AppValidators.isValidPassword(val)) {
-                      return tr.enterValidPassword;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Confirm New Password
-                ElderFriendlyTextField(
-                  controller: _confirmPasswordController,
-                  label: tr.confirmPasswordLabel,
-                  hint: tr.confirmPasswordHint,
-                  prefixIcon: Icons.lock_reset_rounded,
-                  obscureText: _obscurePassword,
-                  validator: (val) {
-                    if (val != _newPasswordController.text) {
-                      return tr.passwordsDoNotMatch;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 36),
-
-                // Submit Button
-                ElderFriendlyButton(
-                  text: tr.updatePasswordBtn,
-                  isLoading: authState.isLoading,
-                  onPressed: _submit,
-                ),
-              ],
+              ),
             ),
           ),
         ),

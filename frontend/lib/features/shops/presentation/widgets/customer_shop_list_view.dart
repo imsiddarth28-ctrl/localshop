@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:the_local_shop/core/theme/app_colors.dart';
+import 'package:the_local_shop/core/theme/app_tokens.dart';
 import 'package:the_local_shop/core/utils/validators.dart';
-import 'package:the_local_shop/core/widgets/elder_friendly_button.dart';
+import 'package:the_local_shop/core/widgets/glass/glass.dart';
 import 'package:the_local_shop/features/auth/presentation/providers/auth_provider.dart';
 import 'package:the_local_shop/features/chat_order/presentation/screens/order_chat_screen.dart';
 import 'package:the_local_shop/features/orders/domain/models/order.dart';
@@ -19,111 +19,121 @@ class CustomerShopListView extends ConsumerStatefulWidget {
 class _CustomerShopListViewState extends ConsumerState<CustomerShopListView> {
   String _selectedCategory = 'All';
 
-  void _showNewOrderDialog(BuildContext context, WidgetRef ref, Shop shop) {
-    DeliverySlotType selectedSlot = DeliverySlotType.morning;
+  // --- New Order Glass Bottom Sheet ---
+  void _showNewOrderDialog(BuildContext context, WidgetRef ref, Shop shop, {String defaultTab = 'text'}) {
+    DeliverySlotType selectedSlot = DeliverySlotType.instant;
     final initialNoteController = TextEditingController();
 
-    showModalBottomSheet(
+    GlassBottomSheet.show(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-            top: 24,
-            left: 20,
-            right: 20,
-          ),
-          child: Column(
+      child: StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final isDark = Theme.of(ctx).brightness == Brightness.dark;
+          final primary = isDark ? AppTokens.primaryDark : AppTokens.primaryLight;
+          final accent = isDark ? AppTokens.accentDark : AppTokens.accentLight;
+
+          return Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Shop Header Info
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: AppColors.primaryContainer,
-                    child: const Icon(Icons.storefront_rounded, color: AppColors.primary, size: 28),
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: primary.withOpacity(0.2),
+                      border: Border.all(color: primary.withOpacity(0.5)),
+                    ),
+                    child: Icon(Icons.storefront_rounded, color: primary, size: 26),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           shop.name,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: AppTokens.headingSmall(isDark).copyWith(fontSize: 18),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '📍 ${shop.distanceKm} km away • ${shop.address}',
-                          style: const TextStyle(fontSize: 13, color: AppColors.secondary, fontWeight: FontWeight.w600),
+                          '📍 ${shop.distanceKm} km away • ${shop.category}',
+                          style: AppTokens.bodySmall(isDark).copyWith(
+                            color: accent,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
-              const Text('1. Choose Delivery Slot:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-              const SizedBox(height: 8),
+              const SizedBox(height: 20),
 
-              // Slot 1: Morning
-              RadioListTile<DeliverySlotType>(
-                contentPadding: EdgeInsets.zero,
-                value: DeliverySlotType.morning,
-                groupValue: selectedSlot,
-                activeColor: AppColors.primary,
-                title: Text('Morning Batch (₹${shop.deliveryFeeMorning.toInt()} fee)', style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('Delivered 7:00 AM • Order before 6:30 AM'),
-                onChanged: (val) => setModalState(() => selectedSlot = val!),
+              // 1. Choose Delivery Slot
+              Text(
+                '1. Select Delivery Timing',
+                style: AppTokens.label(isDark).copyWith(fontSize: 14),
               ),
-
-              // Slot 2: Evening
-              RadioListTile<DeliverySlotType>(
-                contentPadding: EdgeInsets.zero,
-                value: DeliverySlotType.evening,
-                groupValue: selectedSlot,
-                activeColor: AppColors.primary,
-                title: Text('Evening Batch (₹${shop.deliveryFeeEvening.toInt()} fee)', style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('Delivered 6:00 PM • Order before 5:30 PM'),
-                onChanged: (val) => setModalState(() => selectedSlot = val!),
-              ),
-
-              // Slot 3: Instant
-              RadioListTile<DeliverySlotType>(
-                contentPadding: EdgeInsets.zero,
-                value: DeliverySlotType.instant,
-                groupValue: selectedSlot,
-                activeColor: AppColors.secondary,
-                title: Text('Instant Delivery (₹${shop.deliveryFeeInstant.toInt()} fee)', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.secondary)),
-                subtitle: const Text('Urgent orders delivered within 30 mins'),
-                onChanged: (val) => setModalState(() => selectedSlot = val!),
-              ),
-
-              const SizedBox(height: 14),
-              const Text('2. What do you need? (Type list or send in chat):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: initialNoteController,
-                maxLength: 500,
-                decoration: InputDecoration(
-                  hintText: 'e.g. 2 packets milk, 1kg sugar, tata salt...',
-                  filled: true,
-                  fillColor: AppColors.cardLight,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+              const SizedBox(height: 10),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    GlassChip(
+                      label: 'Instant Delivery',
+                      subtitle: '+₹${shop.deliveryFeeInstant.toInt()} • within 30m',
+                      icon: Icons.bolt_rounded,
+                      activeColor: accent,
+                      isSelected: selectedSlot == DeliverySlotType.instant,
+                      onTap: () => setModalState(() => selectedSlot = DeliverySlotType.instant),
+                    ),
+                    const SizedBox(width: 8),
+                    GlassChip(
+                      label: '7:00 AM Slot',
+                      subtitle: '+₹${shop.deliveryFeeMorning.toInt()} • Morning batch',
+                      icon: Icons.wb_sunny_outlined,
+                      isSelected: selectedSlot == DeliverySlotType.morning,
+                      onTap: () => setModalState(() => selectedSlot = DeliverySlotType.morning),
+                    ),
+                    const SizedBox(width: 8),
+                    GlassChip(
+                      label: '6:00 PM Slot',
+                      subtitle: '+₹${shop.deliveryFeeEvening.toInt()} • Evening batch',
+                      icon: Icons.nights_stay_outlined,
+                      isSelected: selectedSlot == DeliverySlotType.evening,
+                      onTap: () => setModalState(() => selectedSlot = DeliverySlotType.evening),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(height: 20),
 
-              const SizedBox(height: 16),
-              ElderFriendlyButton(
-                text: 'Message Shopkeeper & Order',
+              // 2. Initial Needs Note
+              Text(
+                '2. What items do you need?',
+                style: AppTokens.label(isDark).copyWith(fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              GlassTextField(
+                controller: initialNoteController,
+                label: 'Grocery List or Request',
+                hint: 'e.g. 2L Milk, 1kg Sugar, Bread packet...',
+                maxLines: 2,
+              ),
+              const SizedBox(height: 24),
+
+              // Start Chat / Order Button
+              GlassButton(
+                text: 'Send to Shopkeeper & Open Chat',
                 icon: Icons.chat_bubble_rounded,
                 onPressed: () {
                   final user = ref.read(authProvider).user!;
                   final sanitizedNote = AppValidators.sanitizeText(initialNoteController.text);
+
                   final order = ref.read(orderProvider.notifier).createOrder(
                         shopId: shop.id,
                         customerId: user.id,
@@ -132,9 +142,10 @@ class _CustomerShopListViewState extends ConsumerState<CustomerShopListView> {
                         customerAddress: user.address ?? 'Colony Resident',
                         slot: selectedSlot,
                         initialMessage: sanitizedNote.isEmpty
-                            ? 'Namaste, I want to place an order.'
+                            ? 'Namaste, I would like to place an order.'
                             : sanitizedNote,
                       );
+
                   Navigator.pop(ctx);
                   Navigator.push(
                     context,
@@ -142,14 +153,16 @@ class _CustomerShopListViewState extends ConsumerState<CustomerShopListView> {
                   );
                 },
               ),
+              const SizedBox(height: 12),
             ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildOrderProgressIndicator(OrderStatus status) {
+  // --- Order Progress Stepper ---
+  Widget _buildOrderProgressIndicator(OrderStatus status, bool isDark) {
     int currentStep = 0;
     if (status == OrderStatus.placed) currentStep = 1;
     if (status == OrderStatus.accepted || status == OrderStatus.billed) currentStep = 2;
@@ -161,15 +174,17 @@ class _CustomerShopListViewState extends ConsumerState<CustomerShopListView> {
       {'label': 'Placed', 'icon': Icons.send_rounded},
       {'label': 'Billed', 'icon': Icons.receipt_long_rounded},
       {'label': 'Packing', 'icon': Icons.inventory_2_rounded},
-      {'label': 'On Way', 'icon': Icons.delivery_dining_rounded},
+      {'label': 'Out for Delivery', 'icon': Icons.delivery_dining_rounded},
     ];
+
+    final primary = isDark ? AppTokens.primaryDark : AppTokens.primaryLight;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.cardLight,
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? const Color(0x1AFFFFFF) : const Color(0x330F172A),
+        borderRadius: BorderRadius.circular(AppTokens.radiusButton),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -178,32 +193,36 @@ class _CustomerShopListViewState extends ConsumerState<CustomerShopListView> {
           final isCompleted = currentStep > stepNum;
           final isCurrent = currentStep == stepNum;
 
-          Color stepColor = Colors.grey.shade400;
-          if (isCompleted) stepColor = AppColors.success;
-          if (isCurrent) stepColor = AppColors.primary;
-
           return Expanded(
             child: Row(
               children: [
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircleAvatar(
-                      radius: 13,
-                      backgroundColor: isCurrent ? AppColors.primary : (isCompleted ? AppColors.success : Colors.grey.shade300),
+                    Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isCurrent
+                            ? primary
+                            : (isCompleted
+                                ? primary.withOpacity(0.8)
+                                : (isDark ? Colors.white12 : Colors.black12)),
+                      ),
                       child: Icon(
-                        isCompleted ? Icons.check : (steps[index]['icon'] as IconData),
+                        isCompleted ? Icons.check_rounded : (steps[index]['icon'] as IconData),
                         size: 14,
-                        color: Colors.white,
+                        color: isCurrent || isCompleted ? const Color(0xFF0A0F1C) : Colors.grey,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 4),
                     Text(
                       steps[index]['label'] as String,
-                      style: TextStyle(
+                      style: AppTokens.bodySmall(isDark).copyWith(
                         fontSize: 10,
                         fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
-                        color: stepColor,
+                        color: isCurrent ? primary : (isDark ? AppTokens.textSecondaryDark : AppTokens.textSecondaryLight),
                       ),
                     ),
                   ],
@@ -212,7 +231,8 @@ class _CustomerShopListViewState extends ConsumerState<CustomerShopListView> {
                   Expanded(
                     child: Container(
                       height: 2,
-                      color: isCompleted ? AppColors.success : Colors.grey.shade300,
+                      margin: const EdgeInsets.only(bottom: 14),
+                      color: isCompleted ? primary : (isDark ? Colors.white12 : Colors.black12),
                     ),
                   ),
               ],
@@ -227,19 +247,19 @@ class _CustomerShopListViewState extends ConsumerState<CustomerShopListView> {
   Widget build(BuildContext context) {
     final orderState = ref.watch(orderProvider);
     final user = ref.watch(authProvider).user;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = isDark ? AppTokens.primaryDark : AppTokens.primaryLight;
+    final accent = isDark ? AppTokens.accentDark : AppTokens.accentLight;
 
-    // Strict Locality & 1km filter: customer sees ONLY shops within 1 km and in their locality
     final String userColonyId = user?.colonyId ?? 'c0000000-0000-0000-0000-000000000001';
     List<Shop> colonyShops = orderState.shops
         .where((s) => s.colonyId == userColonyId && s.distanceKm <= 1.0)
         .toList();
 
-    // Category filter
     if (_selectedCategory != 'All') {
       colonyShops = colonyShops.where((s) => s.category.toLowerCase().contains(_selectedCategory.toLowerCase())).toList();
     }
 
-    // Filter customer active orders
     final List<CustomerOrder> activeOrders = orderState.orders
         .where((o) => o.customerId == user?.id && o.status != OrderStatus.delivered && o.status != OrderStatus.cancelled)
         .toList();
@@ -247,408 +267,382 @@ class _CustomerShopListViewState extends ConsumerState<CustomerShopListView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Active Orders Tracker Banner
+        // 1. Active Orders Card
         if (activeOrders.isNotEmpty) ...[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.shopping_bag_outlined, color: AppColors.primary, size: 22),
-                  SizedBox(width: 8),
+                  Icon(Icons.shopping_bag_outlined, color: primary, size: 20),
+                  const SizedBox(width: 8),
                   Text(
                     'Active Orders',
-                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    style: AppTokens.headingSmall(isDark).copyWith(fontSize: 17),
                   ),
                 ],
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(14),
+                  color: primary.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                  border: Border.all(color: primary.withOpacity(0.5)),
                 ),
                 child: Text(
-                  '${activeOrders.length} IN PROGRESS',
-                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                  '${activeOrders.length} IN TRANSIT',
+                  style: AppTokens.bodySmall(isDark).copyWith(color: primary, fontWeight: FontWeight.bold, fontSize: 10),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
           ...activeOrders.map((CustomerOrder order) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 14),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1.5),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4)),
-                ],
-              ),
+            return GlassCard(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(AppTokens.space16),
+              accentBorderColor: primary,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: Text(
-                          order.shopName,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-                        ),
-                      ),
+                      Text(order.shopName, style: AppTokens.label(isDark).copyWith(fontSize: 16)),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryContainer,
-                          borderRadius: BorderRadius.circular(10),
+                          color: primary.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           order.status.label.toUpperCase(),
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(color: primary, fontSize: 10, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Text(
-                    '${order.slot.title} • ₹${order.grandTotal.toInt()} (${order.paymentStatus == 'paid_online' ? 'Paid' : (order.paymentStatus == 'cod' ? 'Cash on Delivery' : 'Awaiting Bill Confirmation')})',
-                    style: const TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.w600),
+                    '${order.slot.title} • Total: ₹${order.grandTotal.toInt()}',
+                    style: AppTokens.bodySmall(isDark).copyWith(fontWeight: FontWeight.w600),
                   ),
-
-                  // Order Progress Tracker
-                  _buildOrderProgressIndicator(order.status),
-
+                  _buildOrderProgressIndicator(order.status, isDark),
                   const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.chat_bubble_rounded, size: 18, color: Colors.white),
-                          label: const Text('Open Order Chat', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => OrderChatScreen(orderId: order.id)),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+                  GlassButton(
+                    text: 'Open Order Chat',
+                    icon: Icons.chat_bubble_rounded,
+                    height: 44,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => OrderChatScreen(orderId: order.id)),
+                      );
+                    },
                   ),
                 ],
               ),
             );
           }),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
         ],
 
-        // Locality & 1km Header
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.primaryContainer.withValues(alpha: 0.6),
-                Colors.white,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        // 2. Quick Action Glass Row (Order via Text / Voice / Photo)
+        Text('Quick Order Assistant', style: AppTokens.label(isDark).copyWith(fontSize: 14)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _buildQuickActionCard(
+                icon: Icons.edit_note_rounded,
+                label: 'Text List',
+                color: primary,
+                isDark: isDark,
+                onTap: () {
+                  if (colonyShops.isNotEmpty) {
+                    _showNewOrderDialog(context, ref, colonyShops.first, defaultTab: 'text');
+                  }
+                },
+              ),
             ),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 3)),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.near_me_rounded, color: Colors.white, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Shops within 1 km',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primaryDark),
-                        ),
-                        Text(
-                          user?.colonyName ?? "Your Verified Colony",
-                          style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.check_circle, color: AppColors.success, size: 13),
-                        SizedBox(width: 4),
-                        Text('VERIFIED', style: TextStyle(color: AppColors.success, fontSize: 10, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildQuickActionCard(
+                icon: Icons.mic_rounded,
+                label: 'Voice Note',
+                color: accent,
+                isDark: isDark,
+                onTap: () {
+                  if (colonyShops.isNotEmpty) {
+                    _showNewOrderDialog(context, ref, colonyShops.first, defaultTab: 'voice');
+                  }
+                },
               ),
-              const SizedBox(height: 10),
-              const Text(
-                'Direct chat with neighborhood shopkeepers. No catalog browsing needed!',
-                style: TextStyle(fontSize: 12, color: Colors.black54),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildQuickActionCard(
+                icon: Icons.camera_alt_rounded,
+                label: 'Photo List',
+                color: AppTokens.infoDark,
+                isDark: isDark,
+                onTap: () {
+                  if (colonyShops.isNotEmpty) {
+                    _showNewOrderDialog(context, ref, colonyShops.first, defaultTab: 'photo');
+                  }
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         ),
+        const SizedBox(height: 18),
 
-        const SizedBox(height: 14),
-
-        // Quick Category Filter Chips
+        // 3. Category Filter Chips
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              _buildCategoryChip('All', Icons.storefront_rounded),
+              GlassChip(
+                label: 'All Shops',
+                icon: Icons.storefront_rounded,
+                isSelected: _selectedCategory == 'All',
+                onTap: () => setState(() => _selectedCategory = 'All'),
+              ),
               const SizedBox(width: 8),
-              _buildCategoryChip('Grocery', Icons.shopping_basket_outlined),
+              GlassChip(
+                label: 'Kirana',
+                icon: Icons.shopping_basket_outlined,
+                isSelected: _selectedCategory == 'Kirana',
+                onTap: () => setState(() => _selectedCategory = 'Kirana'),
+              ),
               const SizedBox(width: 8),
-              _buildCategoryChip('Dairy', Icons.egg_alt_outlined),
+              GlassChip(
+                label: 'Dairy',
+                icon: Icons.egg_alt_outlined,
+                isSelected: _selectedCategory == 'Dairy',
+                onTap: () => setState(() => _selectedCategory = 'Dairy'),
+              ),
               const SizedBox(width: 8),
-              _buildCategoryChip('Vegetables', Icons.eco_outlined),
+              GlassChip(
+                label: 'Vegetables',
+                icon: Icons.eco_outlined,
+                isSelected: _selectedCategory == 'Vegetables',
+                onTap: () => setState(() => _selectedCategory = 'Vegetables'),
+              ),
             ],
           ),
         ),
+        const SizedBox(height: 16),
 
-        const SizedBox(height: 14),
-
-        if (colonyShops.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(36),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: const Center(
+        // 4. Colony Shops List
+        if (colonyShops.isEmpty) ...[
+          GlassCard(
+            padding: const EdgeInsets.all(AppTokens.space32),
+            child: Center(
               child: Column(
                 children: [
-                  Icon(Icons.store_mall_directory_outlined, size: 48, color: Colors.grey),
-                  SizedBox(height: 10),
-                  Text(
-                    'No shops found in this category within 1 km.',
-                    style: TextStyle(fontSize: 15, color: Colors.black54),
-                  ),
+                  Icon(Icons.store_mall_directory_outlined, size: 48, color: isDark ? Colors.white38 : Colors.black38),
+                  const SizedBox(height: 10),
+                  Text('No colony shops found in this category.', style: AppTokens.bodyMedium(isDark)),
                 ],
               ),
             ),
-          )
-        else
+          ),
+        ] else ...[
           ...colonyShops.map((Shop shop) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4)),
-                ],
-                border: Border.all(color: Colors.grey.shade200),
-              ),
+            return GlassCard(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.all(AppTokens.space20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    leading: CircleAvatar(
-                      radius: 28,
-                      backgroundColor: shop.isOpen ? AppColors.primaryContainer : Colors.grey.shade200,
-                      child: Icon(
-                        Icons.storefront_rounded,
-                        color: shop.isOpen ? AppColors.primary : Colors.grey,
-                        size: 30,
+                  Row(
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: shop.isOpen
+                              ? primary.withOpacity(0.2)
+                              : Colors.grey.withOpacity(0.2),
+                          border: Border.all(
+                            color: shop.isOpen ? primary : Colors.grey,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.storefront_rounded,
+                          color: shop.isOpen ? primary : Colors.grey,
+                          size: 26,
+                        ),
                       ),
-                    ),
-                    title: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            shop.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: shop.isOpen ? AppColors.success.withValues(alpha: 0.15) : Colors.red.shade100,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            shop.isOpen ? 'OPEN' : 'CLOSED',
-                            style: TextStyle(
-                              color: shop.isOpen ? AppColors.success : AppColors.error,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 4),
-                        Row(
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: AppColors.secondaryContainer.withValues(alpha: 0.6),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                '📍 ${shop.distanceKm} km away',
-                                style: const TextStyle(
-                                  color: AppColors.secondary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    shop.name,
+                                    style: AppTokens.headingSmall(isDark).copyWith(fontSize: 17),
+                                  ),
                                 ),
+                                // Open/Closed Glowing Status Dot
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                                    color: (shop.isOpen ? AppTokens.primaryDark : AppTokens.dangerDark).withOpacity(0.18),
+                                    border: Border.all(
+                                      color: (shop.isOpen ? AppTokens.primaryDark : AppTokens.dangerDark).withOpacity(0.5),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: shop.isOpen ? AppTokens.primaryDark : AppTokens.dangerDark,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: (shop.isOpen ? AppTokens.primaryDark : AppTokens.dangerDark).withOpacity(0.6),
+                                              blurRadius: 6,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        shop.isOpen ? 'OPEN' : 'CLOSED',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: shop.isOpen ? AppTokens.primaryDark : AppTokens.dangerDark,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              '📍 ${shop.distanceKm} km away • ${shop.category}',
+                              style: AppTokens.bodySmall(isDark).copyWith(
+                                color: accent,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Text(shop.category, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600, fontSize: 13)),
                           ],
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            const Icon(Icons.star_rounded, color: Colors.amber, size: 18),
-                            const SizedBox(width: 4),
-                            Text('${shop.rating} (${shop.reviewCount})', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                            const SizedBox(width: 12),
-                            const Icon(Icons.access_time_rounded, size: 15, color: Colors.black54),
-                            const SizedBox(width: 4),
-                            Text(shop.hours, style: const TextStyle(fontSize: 12, color: Colors.black54)),
-                          ],
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 12),
 
-                  // Delivery Slots Pill Row
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        Chip(
-                          backgroundColor: AppColors.primaryContainer.withValues(alpha: 0.4),
-                          avatar: const Icon(Icons.wb_sunny_outlined, size: 14, color: AppColors.primary),
-                          label: Text('Morning 7AM (₹${shop.deliveryFeeMorning.toInt()})', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-                        ),
-                        Chip(
-                          backgroundColor: AppColors.primaryContainer.withValues(alpha: 0.4),
-                          avatar: const Icon(Icons.nightlight_outlined, size: 14, color: AppColors.primary),
-                          label: Text('Evening 6PM (₹${shop.deliveryFeeEvening.toInt()})', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-                        ),
-                        Chip(
-                          backgroundColor: AppColors.secondaryContainer.withValues(alpha: 0.4),
-                          avatar: const Icon(Icons.bolt, size: 14, color: AppColors.secondary),
-                          label: Text('Instant 30m (₹${shop.deliveryFeeInstant.toInt()})', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-                        ),
-                      ],
-                    ),
+                  // Operating hours & rating
+                  Row(
+                    children: [
+                      const Icon(Icons.star_rounded, color: Colors.amber, size: 17),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${shop.rating} (${shop.reviewCount})',
+                        style: AppTokens.bodySmall(isDark).copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(width: 14),
+                      Icon(Icons.access_time_rounded, size: 15, color: isDark ? AppTokens.textSecondaryDark : AppTokens.textSecondaryLight),
+                      const SizedBox(width: 4),
+                      Text(
+                        shop.hours,
+                        style: AppTokens.bodySmall(isDark),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 14),
 
-                  const SizedBox(height: 10),
-                  const Divider(height: 1),
+                  // Delivery Slot Pills preview
+                  Row(
+                    children: [
+                      _buildSlotBadge('Instant +₹10', Icons.bolt_rounded, isDark),
+                      const SizedBox(width: 6),
+                      _buildSlotBadge('7 AM +₹5', Icons.wb_sunny_outlined, isDark),
+                      const SizedBox(width: 6),
+                      _buildSlotBadge('6 PM +₹5', Icons.nights_stay_outlined, isDark),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
 
-                  // Action Buttons: Call & Order via Chat
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Row(
-                      children: [
-                        OutlinedButton.icon(
-                          icon: const Icon(Icons.call_outlined, size: 18),
-                          label: const Text('Call Shop'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.black87,
-                            side: BorderSide(color: Colors.grey.shade400),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Calling ${shop.ownerName} at ${shop.phone}...')),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.chat_bubble_rounded, size: 18, color: Colors.white),
-                            label: const Text('Message & Order', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              elevation: 2,
-                            ),
-                            onPressed: () => _showNewOrderDialog(context, ref, shop),
-                          ),
-                        ),
-                      ],
-                    ),
+                  // Start Order Button
+                  GlassButton(
+                    text: 'Start Shopping / Chat Order',
+                    icon: Icons.chat_bubble_outline_rounded,
+                    height: 48,
+                    onPressed: () => _showNewOrderDialog(context, ref, shop),
                   ),
                 ],
               ),
             );
           }),
+        ],
       ],
     );
   }
 
-  Widget _buildCategoryChip(String label, IconData icon) {
-    final isSelected = _selectedCategory == label;
-    return ChoiceChip(
-      avatar: Icon(icon, size: 16, color: isSelected ? Colors.white : AppColors.primary),
-      label: Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? Colors.white : Colors.black87)),
-      selected: isSelected,
-      selectedColor: AppColors.primary,
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: isSelected ? AppColors.primary : Colors.grey.shade300)),
-      onSelected: (selected) {
-        if (selected) {
-          setState(() => _selectedCategory = label);
-        }
-      },
+  Widget _buildQuickActionCard({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withOpacity(0.2),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: AppTokens.label(isDark).copyWith(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSlotBadge(String text, IconData icon, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+        color: isDark ? const Color(0x1AFFFFFF) : const Color(0x330F172A),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: isDark ? AppTokens.textSecondaryDark : AppTokens.textSecondaryLight),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: AppTokens.bodySmall(isDark).copyWith(fontSize: 11, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
     );
   }
 }

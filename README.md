@@ -106,3 +106,55 @@ cd frontend
 flutter build apk --release
 # Generated APK: frontend/build/app/outputs/flutter-apk/app-release.apk
 ```
+
+---
+
+## 🎨 Glassmorphic Design System
+
+"The Local Shop" features a presentation architecture crafted with an adaptive, GPU-accelerated glassmorphism design system, ambient aurora lighting, and a 4-act cinematic motion splash.
+
+### 1. Design Tokens (`lib/core/theme/app_tokens.dart`)
+
+- **Color Palettes**:
+  - **Dark Mode**: Background `#0A0F1C` → `#101828`, Emerald `#34D399` (Primary), Amber `#FBBF24` (Accent), Aurora Blobs (Emerald @25%, Indigo @20%, Amber @12%).
+  - **Light Mode**: Background `#EEF3F8` → `#F8FAFC`, Calibrated Emerald `#059669` (AA Contrast), Soft Mint/Peach/Sky Blobs @35%.
+  - **Rule**: Maximum 1 primary + 1 accent per screen; all other layers use neutral glass fills (`rgba(255,255,255,0.08)` dark, `rgba(255,255,255,0.55)` light) with top-edge specular highlights (`rgba(255,255,255,0.28)`).
+- **Typography**:
+  - Headings: `GoogleFonts.sora` (SemiBold 600 / Bold 700).
+  - Body & Labels: `GoogleFonts.plusJakartaSans` (Regular 400 / Medium 500 / SemiBold 600).
+  - Sizes: Scale `12 / 14 / 16 / 20 / 24 / 32`.
+- **Radii & Geometry**:
+  - Cards: `24dp`
+  - Buttons & Inputs: `16dp`
+  - Bottom Sheets: `32dp`
+  - Chips & Pills: `999dp`
+- **Spacing Scale**: `4 / 8 / 12 / 16 / 20 / 24 / 32dp`.
+
+### 2. Glass Component Library (`lib/core/widgets/glass/`)
+
+| Component | Description | Performance Optimization |
+| :--- | :--- | :--- |
+| `GlassScaffold` | Animated ambient drifting aurora background blobs | Hardware-accelerated CustomPainter, paused when backgrounded |
+| `GlassCard` | Glass container with top gleam highlight & gradient border | Cached `ImageFilter`, `useRealBlur: false` ("fake glass") for 60fps lists |
+| `GlassButton` | Filled primary and outline secondary with haptics & press scale | `AnimatedScale(0.97)` + spring curve, built-in spinner morph |
+| `GlassTextField` | Floating label with primary glow and error shake | Pure Matrix4 horizontal oscillation curve on validation error |
+| `GlassBottomNav` | Floating frosted pill with active icon morph & label fade | Single `BackdropFilter` layer with haptic feedback on tab change |
+| `GlassAppBar` | Translucent blurred top navigation bar | Preserves safe-area padding with `NavigationToolbar` |
+| `GlassChip` | Filter and delivery slot selection pill | Instant (+₹10), Morning 7 AM (+₹5), Evening 6 PM (+₹5) glow |
+| `GlassBottomSheet`| Draggable blurred modal sheet | Drag handle, frosted gradient, keyboard-avoiding constraints |
+| `GlassDialog` | Central confirmation and alert modal | Cached blur with responsive dialog bounds |
+| `GlassSnackbar` | Floating glass pill for notifications | Danger, Success, and Info tints with WCAG AA compliance |
+| `GlassSkeleton` | Shimmer placeholder loader | Pure Flutter shader sweep without external heavy libraries |
+| `GlassPerformance`| Adaptive performance probe | Selects Low (`sigma 8`), Medium (`sigma 14`), or High tier (`sigma 18`) |
+
+### 3. Motion System & Cinematic Splash (`lib/features/splash/`)
+
+- **Durations**: Micro (`120ms`), Small (`200ms`), Medium (`320ms`), Large (`500ms`), Hero (`900ms`), Splash (`3200ms`).
+- **Curves**: Enter (`easeOutCubic`), Exit (`easeInCubic`), Pop (`easeOutBack`), Press (`Cubic(0.34, 1.56, 0.64, 1.0)`).
+- **Cinematic Story (Pure Flutter CustomPainter + 3D Perspective Matrix)**:
+  1. **Act 1 (0.0s – 0.8s)**: 3D perspective-tilted phone mockup appears (`setEntry(3, 2, 0.001)`), order card renders, and thumb ripple confirms order.
+  2. **Act 2 (0.8s – 1.7s)**: Glowing glass order chip detaches and glides along a cubic Bezier curve to the neighborhood colony shop.
+  3. **Act 3 (1.7s – 2.7s)**: Flat vector scooter travels across a road with 3 parallax scenery depth layers to customer doorstep with bounce.
+  4. **Act 4 (2.7s – 3.2s)**: Camera zooms back with logo reveal, specular shimmer sweep, and hero transition into the application.
+  - Abbreviated 1s version on subsequent launches; respects `MediaQuery.disableAnimations`.
+

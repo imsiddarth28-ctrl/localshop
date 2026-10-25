@@ -14,6 +14,17 @@ enum AppRole {
     }
   }
 
+  String toDisplayName() {
+    switch (this) {
+      case AppRole.customer:
+        return 'Customer';
+      case AppRole.shopOwner:
+        return 'Shop Owner';
+      case AppRole.admin:
+        return 'Admin';
+    }
+  }
+
   static AppRole fromDbString(String? role) {
     switch (role) {
       case 'shop_owner':
