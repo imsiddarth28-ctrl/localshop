@@ -1,0 +1,23 @@
+# Environment & Sensitive Secrets
+.env
+.env.*
+*.secret.json
+service-account*.json
+*.jks
+*.keystore
+key.properties
+google-services.json
+
+# Build & Dependency Artifacts
+build/
+.dart_tool/
+.pub-cache/
+.flutter-plugins-dependencies
+node_modules/
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml

@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: localshop-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: SUPABASE_URL
+        value: https://cdqszwgemaxinfrzejuu.supabase.co
+      - key: SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkcXN6d2dlbWF4aW5mcnplanV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NTAzMjQsImV4cCI6MjEwODQyNjMyNH0.KivjJ3bVuhfBzysRu-GEuDc4WEBGdSjrfhn1GsQhf3Y
